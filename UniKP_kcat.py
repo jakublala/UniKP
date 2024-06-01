@@ -18,6 +18,15 @@ import random
 import pickle
 import math
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    try:
+        device = torch.device('mps')
+    except:
+        device = torch.device('cpu')
+        print('No GPU or MPS available, using CPU instead.')
+
 
 def smiles_to_vec(Smiles):
     pad_index = 0
@@ -46,7 +55,7 @@ def smiles_to_vec(Smiles):
             x_seg.append(b)
         return torch.tensor(x_id), torch.tensor(x_seg)
     trfm = TrfmSeq2seq(len(vocab), 256, len(vocab), 4)
-    trfm.load_state_dict(torch.load('trfm_12_23000.pkl'))
+    trfm.load_state_dict(torch.load('trfm_12_23000.pkl', map_location=device))
     trfm.eval()
     x_split = [split(sm) for sm in Smiles]
     xid, xseg = get_array(x_split)
@@ -68,9 +77,6 @@ def Seq_to_vec(Sequence):
     tokenizer = T5Tokenizer.from_pretrained("prot_t5_xl_uniref50", do_lower_case=False)
     model = T5EncoderModel.from_pretrained("prot_t5_xl_uniref50")
     gc.collect()
-    print(torch.cuda.is_available())
-    # 'cuda:0' if torch.cuda.is_available() else
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     model = model.eval()
     features = []
@@ -121,8 +127,8 @@ def Kcat_predict(Ifeature, Label, sequence_new, Smiles_new, ECNumber_new, Organi
 
 if __name__ == '__main__':
     # Dataset Load
-    with open('Kcat_combination_0918_wildtype_mutant.json', 'r') as file:
-        datasets = json.load(file)
+    with open('datasets/Kcat_combination_0918_wildtype_mutant.json', 'r') as file:
+        datasets = json.load(file)[:10]
     # print(len(datasets))
     sequence = [data['Sequence'] for data in datasets]
     Smiles = [data['Smiles'] for data in datasets]
