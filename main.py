@@ -91,6 +91,23 @@ def Seq_to_vec(Sequence):
             features_normalize[i][k] /= len(features[i])
     return features_normalize
 
+import pickle
+import numpy as np
+
+class CustomUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == "numpy" and name == "dtype":
+            return self.custom_dtype
+        return super().find_class(module, name)
+
+    def custom_dtype(self, *args, **kwargs):
+        if args and isinstance(args[0], list) and "left_child" in args[0][0]:
+            # Modify dtype here to match expected format
+            args = ([('left_child', '<i8'), ('right_child', '<i8'), ('feature', '<i8'),
+                     ('threshold', '<f8'), ('impurity', '<f8'), ('n_node_samples', '<i8'),
+                     ('weighted_n_node_samples', '<f8'), ('missing_go_to_left', 'u1')],)
+        return np.dtype(*args, **kwargs)
+
 
 if __name__ == '__main__':
     sequences = ['MEDIPDTSRPPLKYVKGIPLIKYFAEALESLQDFQAQPDDLLISTYPKSGTTWVSEILDMIYQDGDVEKCRRAPVFIRVPFLEFKA'
@@ -104,8 +121,11 @@ if __name__ == '__main__':
 
     ###### you should place downloaded model into this directory.
     # For kcat
-    with open('UniKP/UniKP for kcat.pkl', "rb") as f:
-        model = pickle.load(f)
+    with open('UniKP/UniKP_for_kcat.pkl', "rb") as f:
+        unpickler = CustomUnpickler(f)
+        model = unpickler.load()
+        print("Model loaded with custom dtype adjustments")
+
     # For Km
     # with open('UniKP/UniKP for Km.pkl', "rb") as f:
     #     model = pickle.load(f)
